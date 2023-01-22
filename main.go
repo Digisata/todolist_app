@@ -37,6 +37,12 @@ func main() {
 
 	app := fiber.New()
 
+	app.Get("/", func(c *fiber.Ctx) {
+		c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"msg": "devcode updated",
+		})
+	})
+
 	app.Post("/activity-groups", activityController.Create)
 	app.Get("/activity-groups", activityController.FindAll)
 	app.Get("/activity-groups/:id", activityController.FindById)

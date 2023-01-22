@@ -158,11 +158,11 @@ func (controller *todoController) Update(c *fiber.Ctx) {
 		return
 	}
 
-	err = controller.DB.Model(&todo).Updates(models.Todo{
-		ActivityGroupId: body.ActivityGroupId,
-		Title:           body.Title,
-		IsActive:        body.IsActive,
-		Priority:        body.Priority,
+	err = controller.DB.Model(&todo).Updates(map[string]interface{}{
+		"activity_group_id": body.ActivityGroupId,
+		"title":             body.Title,
+		"is_active":         body.IsActive,
+		"priority":          body.Priority,
 	}).Error
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

@@ -16,3 +16,16 @@ type Todo struct {
 	IsActive        bool           `gorm:"default:true" json:"is_active"`
 	Priority        string         `gorm:"default:very-high" json:"priority"`
 }
+
+type CreateTodoRequest struct {
+	Title           string `validate:"required" json:"title"`
+	ActivityGroupId uint   `validate:"required" json:"activity_group_id"`
+	IsActive        bool   `json:"is_active"`
+	Priority        string `json:"priority"`
+}
+
+type UpdateTodoRequest struct {
+	Title           string `validate:"required" json:"title"`
+	IsActive        bool   `json:"is_active"`
+	Priority        string `json:"priority"`
+}

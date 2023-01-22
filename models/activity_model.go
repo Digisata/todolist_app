@@ -14,3 +14,8 @@ type Activity struct {
 	Title     string         `json:"title"`
 	Email     string         `json:"email"`
 }
+
+type ActivityRequest struct {
+	Title string `validate:"required" json:"title"`
+	Email string `json:"email"`
+}

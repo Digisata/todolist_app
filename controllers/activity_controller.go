@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
+	"github.com/Digisata/todolist_app/helpers"
 	"github.com/Digisata/todolist_app/models"
 	"github.com/gofiber/fiber"
 	"gorm.io/gorm"
@@ -20,59 +23,50 @@ func NewActivityController(DB *gorm.DB) *activityController {
 }
 
 func (controller *activityController) Create(c *fiber.Ctx) {
-	var body struct {
-		Title string `json:"title"`
-		Email string `json:"email"`
-	}
+	body := new(models.ActivityRequest)
 
-	if err := c.BodyParser(&body); err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+	if err := c.BodyParser(body); err != nil {
+		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusBadRequest),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	if body.Title == "" {
-		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"status":  "Bad Request",
-			"message": "title cannot be null",
+	errors := helpers.ValidateStruct(*body)
+	if errors != nil {
+		msg, _ := json.Marshal(errors)
+		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusBadRequest),
+			Message: string(msg),
 		})
 		return
 	}
 
 	activity := models.Activity{Title: body.Title, Email: body.Email}
-	err := controller.DB.Create(&activity).Error
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
-		})
-		return
-	}
+	controller.DB.Create(&activity)
 
-	c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  "Success",
-		"message": "Success",
-		"data":    activity,
+	c.Status(http.StatusOK).JSON(models.BaseResponse{
+		Status:  "Success",
+		Message: "Success",
+		Data:    activity,
 	})
 }
 
 func (controller *activityController) FindAll(c *fiber.Ctx) {
 	var activities []models.Activity
-	err := controller.DB.Find(&activities).Error
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+	if err := controller.DB.Find(&activities).Error; err != nil {
+		c.Status(http.StatusInternalServerError).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  "Success",
-		"message": "Success",
-		"data":    activities,
+	c.Status(http.StatusOK).JSON(models.BaseResponse{
+		Status:  "Success",
+		Message: "Success",
+		Data:    activities,
 	})
 }
 
@@ -80,27 +74,26 @@ func (controller *activityController) FindById(c *fiber.Ctx) {
 	id := c.Params("id")
 
 	var activity models.Activity
-	err := controller.DB.First(&activity, id).Error
-	if err != nil {
+	if err := controller.DB.First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.Status(fiber.StatusOK).JSON(fiber.Map{
-				"status":  "Not Found",
-				"message": fmt.Sprintf("Activity with ID %s Not Found", id),
+			c.Status(http.StatusNotFound).JSON(models.BaseResponse{
+				Status:  http.StatusText(http.StatusNotFound),
+				Message: fmt.Sprintf("Activity with ID %s Not Found", id),
 			})
 			return
 		}
 
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+		c.Status(http.StatusInternalServerError).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  "Success",
-		"message": "Success",
-		"data":    activity,
+	c.Status(http.StatusOK).JSON(models.BaseResponse{
+		Status:  "Success",
+		Message: "Success",
+		Data:    activity,
 	})
 }
 
@@ -108,52 +101,57 @@ func (controller *activityController) Update(c *fiber.Ctx) {
 	id := c.Params("id")
 
 	var activity models.Activity
-	err := controller.DB.First(&activity, id).Error
-	if err != nil {
+	if err := controller.DB.First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.Status(fiber.StatusOK).JSON(fiber.Map{
-				"status":  "Not Found",
-				"message": fmt.Sprintf("Activity with ID %s Not Found", id),
+			c.Status(http.StatusNotFound).JSON(models.BaseResponse{
+				Status:  http.StatusText(http.StatusNotFound),
+				Message: fmt.Sprintf("Activity with ID %s Not Found", id),
 			})
 			return
 		}
 
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+		c.Status(http.StatusInternalServerError).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	var body struct {
-		Title string `json:"title"`
-		Email string `json:"email"`
-	}
+	body := new(models.ActivityRequest)
 
-	if err := c.BodyParser(&body); err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+	if err := c.BodyParser(body); err != nil {
+		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusBadRequest),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	err = controller.DB.Model(&activity).Updates(models.Activity{
+	errors := helpers.ValidateStruct(*body)
+	if errors != nil {
+		msg, _ := json.Marshal(errors)
+		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusBadRequest),
+			Message: string(msg),
+		})
+		return
+	}
+
+	if err := controller.DB.Model(&activity).Updates(models.Activity{
 		Title: body.Title,
 		Email: body.Email,
-	}).Error
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+	}).Error; err != nil {
+		c.Status(http.StatusInternalServerError).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  "Success",
-		"message": "Success",
-		"data":    activity,
+	c.Status(http.StatusOK).JSON(models.BaseResponse{
+		Status:  "Success",
+		Message: "Success",
+		Data:    activity,
 	})
 }
 
@@ -161,34 +159,32 @@ func (controller *activityController) Delete(c *fiber.Ctx) {
 	id := c.Params("id")
 
 	var activity models.Activity
-	err := controller.DB.First(&activity, id).Error
-	if err != nil {
+	if err := controller.DB.First(&activity, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.Status(fiber.StatusOK).JSON(fiber.Map{
-				"status":  "Not Found",
-				"message": fmt.Sprintf("Activity with ID %s Not Found", id),
+			c.Status(http.StatusNotFound).JSON(models.BaseResponse{
+				Status:  http.StatusText(http.StatusNotFound),
+				Message: fmt.Sprintf("Activity with ID %s Not Found", id),
 			})
 			return
 		}
 
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+		c.Status(http.StatusInternalServerError).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	err = controller.DB.Delete(&activity).Error
-	if err != nil {
-		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"status":  "Internal Server Error",
-			"message": err.Error(),
+	if err := controller.DB.Delete(&activity).Error; err != nil {
+		c.Status(http.StatusInternalServerError).JSON(models.BaseResponse{
+			Status:  http.StatusText(http.StatusInternalServerError),
+			Message: err.Error(),
 		})
 		return
 	}
 
-	c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"status":  "Success",
-		"message": "Success",
+	c.Status(http.StatusOK).JSON(models.BaseResponse{
+		Status:  "Success",
+		Message: "Success",
 	})
 }

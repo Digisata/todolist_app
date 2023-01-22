@@ -29,8 +29,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to connect to database")
 	}
-	db.AutoMigrate(&models.Activity{})
-	db.AutoMigrate(&models.Todo{})
+	db.AutoMigrate(&models.Activity{}, &models.Todo{})
 
 	activityController := controllers.NewActivityController(db)
 	todoController := controllers.NewTodoController(db)
@@ -55,5 +54,5 @@ func main() {
 	app.Patch("/todo-items/:id", todoController.Update)
 	app.Delete("/todo-items/:id", todoController.Delete)
 
-	app.Listen(":3030")
+	log.Fatal(app.Listen(":3030"))
 }

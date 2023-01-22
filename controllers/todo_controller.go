@@ -9,20 +9,22 @@ import (
 	"gorm.io/gorm"
 )
 
-type activityController struct {
+type todoController struct {
 	DB *gorm.DB
 }
 
-func NewActivityController(DB *gorm.DB) *activityController {
-	return &activityController{
+func NewTodoController(DB *gorm.DB) *todoController {
+	return &todoController{
 		DB: DB,
 	}
 }
 
-func (controller *activityController) Create(c *fiber.Ctx) {
+func (controller *todoController) Create(c *fiber.Ctx) {
 	var body struct {
-		Title string `json:"title"`
-		Email string `json:"email"`
+		ActivityGroupId uint   `json:"activity_group_id"`
+		Title           string `json:"title"`
+		IsActive        bool   `json:"is_active"`
+		Priority        string `json:"priority"`
 	}
 
 	if err := c.BodyParser(&body); err != nil {
@@ -41,8 +43,16 @@ func (controller *activityController) Create(c *fiber.Ctx) {
 		return
 	}
 
-	activity := models.Activity{Title: body.Title, Email: body.Email}
-	err := controller.DB.Create(&activity).Error
+	if body.ActivityGroupId == 0 {
+		c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"status":  "Bad Request",
+			"message": "activity_group_id cannot be null",
+		})
+		return
+	}
+
+	todo := models.Todo{ActivityGroupId: body.ActivityGroupId, Title: body.Title, IsActive: body.IsActive, Priority: body.Priority}
+	err := controller.DB.Create(&todo).Error
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "Internal Server Error",
@@ -54,13 +64,21 @@ func (controller *activityController) Create(c *fiber.Ctx) {
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "Success",
 		"message": "Success",
-		"data":    activity,
+		"data":    todo,
 	})
 }
 
-func (controller *activityController) FindAll(c *fiber.Ctx) {
-	var activities []models.Activity
-	err := controller.DB.Find(&activities).Error
+func (controller *todoController) FindAll(c *fiber.Ctx) {
+	var todos []models.Todo
+	activityGroupId := c.Query("activity_group_id")
+
+	var err error
+	if activityGroupId == "" {
+		err = controller.DB.Find(&todos).Error
+	} else {
+		err = controller.DB.Find(&todos, "activity_group_id = ?", activityGroupId).Error
+	}
+
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "Internal Server Error",
@@ -72,20 +90,20 @@ func (controller *activityController) FindAll(c *fiber.Ctx) {
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "Success",
 		"message": "Success",
-		"data":    activities,
+		"data":    todos,
 	})
 }
 
-func (controller *activityController) FindById(c *fiber.Ctx) {
+func (controller *todoController) FindById(c *fiber.Ctx) {
 	id := c.Params("id")
 
-	var activity models.Activity
-	err := controller.DB.First(&activity, id).Error
+	var todo models.Todo
+	err := controller.DB.First(&todo, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.Status(fiber.StatusOK).JSON(fiber.Map{
 				"status":  "Not Found",
-				"message": fmt.Sprintf("Activity with ID %s Not Found", id),
+				"message": fmt.Sprintf("Todo with ID %s Not Found", id),
 			})
 			return
 		}
@@ -100,20 +118,20 @@ func (controller *activityController) FindById(c *fiber.Ctx) {
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "Success",
 		"message": "Success",
-		"data":    activity,
+		"data":    todo,
 	})
 }
 
-func (controller *activityController) Update(c *fiber.Ctx) {
+func (controller *todoController) Update(c *fiber.Ctx) {
 	id := c.Params("id")
 
-	var activity models.Activity
-	err := controller.DB.First(&activity, id).Error
+	var todo models.Todo
+	err := controller.DB.First(&todo, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.Status(fiber.StatusOK).JSON(fiber.Map{
 				"status":  "Not Found",
-				"message": fmt.Sprintf("Activity with ID %s Not Found", id),
+				"message": fmt.Sprintf("Todo with ID %s Not Found", id),
 			})
 			return
 		}
@@ -126,8 +144,10 @@ func (controller *activityController) Update(c *fiber.Ctx) {
 	}
 
 	var body struct {
-		Title string `json:"title"`
-		Email string `json:"email"`
+		ActivityGroupId uint   `json:"activity_group_id"`
+		Title           string `json:"title"`
+		IsActive        bool   `json:"is_active"`
+		Priority        string `json:"priority"`
 	}
 
 	if err := c.BodyParser(&body); err != nil {
@@ -138,9 +158,11 @@ func (controller *activityController) Update(c *fiber.Ctx) {
 		return
 	}
 
-	err = controller.DB.Model(&activity).Updates(models.Activity{
-		Title: body.Title,
-		Email: body.Email,
+	err = controller.DB.Model(&todo).Updates(models.Todo{
+		ActivityGroupId: body.ActivityGroupId,
+		Title:           body.Title,
+		IsActive:        body.IsActive,
+		Priority:        body.Priority,
 	}).Error
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -153,20 +175,20 @@ func (controller *activityController) Update(c *fiber.Ctx) {
 	c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"status":  "Success",
 		"message": "Success",
-		"data":    activity,
+		"data":    todo,
 	})
 }
 
-func (controller *activityController) Delete(c *fiber.Ctx) {
+func (controller *todoController) Delete(c *fiber.Ctx) {
 	id := c.Params("id")
 
-	var activity models.Activity
-	err := controller.DB.First(&activity, id).Error
+	var todo models.Todo
+	err := controller.DB.First(&todo, id).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			c.Status(fiber.StatusOK).JSON(fiber.Map{
 				"status":  "Not Found",
-				"message": fmt.Sprintf("Activity with ID %s Not Found", id),
+				"message": fmt.Sprintf("Todo with ID %s Not Found", id),
 			})
 			return
 		}
@@ -178,7 +200,7 @@ func (controller *activityController) Delete(c *fiber.Ctx) {
 		return
 	}
 
-	err = controller.DB.Delete(&activity).Error
+	err = controller.DB.Delete(&todo).Error
 	if err != nil {
 		c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"status":  "Internal Server Error",

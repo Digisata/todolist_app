@@ -30,8 +30,10 @@ func main() {
 		log.Fatal("Failed to connect to database")
 	}
 	db.AutoMigrate(&models.Activity{})
+	db.AutoMigrate(&models.Todo{})
 
 	activityController := controllers.NewActivityController(db)
+	todoController := controllers.NewTodoController(db)
 
 	app := fiber.New()
 
@@ -40,6 +42,12 @@ func main() {
 	app.Get("/activity-groups/:id", activityController.FindById)
 	app.Patch("/activity-groups/:id", activityController.Update)
 	app.Delete("/activity-groups/:id", activityController.Delete)
+
+	app.Post("/todo-items", todoController.Create)
+	app.Get("/todo-items", todoController.FindAll)
+	app.Get("/todo-items/:id", todoController.FindById)
+	app.Patch("/todo-items/:id", todoController.Update)
+	app.Delete("/todo-items/:id", todoController.Delete)
 
 	app.Listen(":3030")
 }

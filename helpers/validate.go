@@ -6,16 +6,20 @@ import (
 )
 
 func ValidateStruct(data interface{}) []*models.ErrorResponse {
-    var errors []*models.ErrorResponse
-    err := validator.New().Struct(data)
-    if err != nil {
-        for _, err := range err.(validator.ValidationErrors) {
-            var element models.ErrorResponse
-            element.FailedField = err.StructNamespace()
-            element.Tag = err.Tag()
-            element.Value = err.Param()
-            errors = append(errors, &element)
-        }
-    }
-    return errors
+	Fields := map[string]string{
+		"Title":           "title",
+		"ActivityGroupID": "activity_group_id",
+	}
+	var errors []*models.ErrorResponse
+	err := validator.New().Struct(data)
+	if err != nil {
+		for _, errValidate := range err.(validator.ValidationErrors) {
+			var element models.ErrorResponse
+			element.FailedField = Fields[errValidate.Field()]
+			element.Tag = errValidate.Tag()
+			element.Value = errValidate.Param()
+			errors = append(errors, &element)
+		}
+	}
+	return errors
 }

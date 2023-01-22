@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,16 +28,17 @@ func (controller *activityController) Create(c *fiber.Ctx) {
 		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
 			Status:  http.StatusText(http.StatusBadRequest),
 			Message: err.Error(),
+			Data:    map[string]interface{}{},
 		})
 		return
 	}
 
 	errors := helpers.ValidateStruct(*body)
 	if errors != nil {
-		msg, _ := json.Marshal(errors)
 		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
 			Status:  http.StatusText(http.StatusBadRequest),
-			Message: string(msg),
+			Message: fmt.Sprintf("%s cannot be null", errors[0].FailedField),
+			Data:    map[string]interface{}{},
 		})
 		return
 	}
@@ -46,7 +46,7 @@ func (controller *activityController) Create(c *fiber.Ctx) {
 	activity := models.Activity{Title: body.Title, Email: body.Email}
 	controller.DB.Create(&activity)
 
-	c.Status(http.StatusOK).JSON(models.BaseResponse{
+	c.Status(http.StatusCreated).JSON(models.BaseResponse{
 		Status:  "Success",
 		Message: "Success",
 		Data:    activity,
@@ -79,6 +79,7 @@ func (controller *activityController) FindById(c *fiber.Ctx) {
 			c.Status(http.StatusNotFound).JSON(models.BaseResponse{
 				Status:  http.StatusText(http.StatusNotFound),
 				Message: fmt.Sprintf("Activity with ID %s Not Found", id),
+				Data:    map[string]interface{}{},
 			})
 			return
 		}
@@ -106,6 +107,7 @@ func (controller *activityController) Update(c *fiber.Ctx) {
 			c.Status(http.StatusNotFound).JSON(models.BaseResponse{
 				Status:  http.StatusText(http.StatusNotFound),
 				Message: fmt.Sprintf("Activity with ID %s Not Found", id),
+				Data:    map[string]interface{}{},
 			})
 			return
 		}
@@ -123,16 +125,17 @@ func (controller *activityController) Update(c *fiber.Ctx) {
 		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
 			Status:  http.StatusText(http.StatusBadRequest),
 			Message: err.Error(),
+			Data:    map[string]interface{}{},
 		})
 		return
 	}
 
 	errors := helpers.ValidateStruct(*body)
 	if errors != nil {
-		msg, _ := json.Marshal(errors)
 		c.Status(http.StatusBadRequest).JSON(models.BaseResponse{
 			Status:  http.StatusText(http.StatusBadRequest),
-			Message: string(msg),
+			Message: fmt.Sprintf("%s cannot be null", errors[0].FailedField),
+			Data:    map[string]interface{}{},
 		})
 		return
 	}
@@ -164,6 +167,7 @@ func (controller *activityController) Delete(c *fiber.Ctx) {
 			c.Status(http.StatusNotFound).JSON(models.BaseResponse{
 				Status:  http.StatusText(http.StatusNotFound),
 				Message: fmt.Sprintf("Activity with ID %s Not Found", id),
+				Data:    map[string]interface{}{},
 			})
 			return
 		}
@@ -186,5 +190,6 @@ func (controller *activityController) Delete(c *fiber.Ctx) {
 	c.Status(http.StatusOK).JSON(models.BaseResponse{
 		Status:  "Success",
 		Message: "Success",
+		Data:    map[string]interface{}{},
 	})
 }
